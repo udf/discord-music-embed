@@ -54,6 +54,7 @@ class AudioMetadata:
   cover_height: int
   artist: str
   title: str
+  is_complete: bool = False
 
   def as_dict(self):
     return dataclasses.asdict(self)
@@ -159,6 +160,7 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
         metadata.cover_filename = cache['cover_filename']
         metadata.cover_width = width
         metadata.cover_height = height
+        metadata.is_complete = True
         res.set(metadata)
       except FileNotFoundError:
         logger.warning(f'[{uuid}] cached cover missing!')
@@ -191,12 +193,13 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
   artist, title = read_audio_metadata(local_path)
   metadata.artist = artist
   metadata.title = title
+  metadata.is_complete = True
   res.set(metadata)
 
   store_audio_file_metadata(metadata)
 
 
-async def get_audio_metadata(rel_path: PurePosixPath, uuid: str, timeout: float):
+async def get_audio_metadata(rel_path: PurePosixPath, uuid: str, timeout: float) -> AudioMetadata:
   res: ResultWrapper[AudioMetadata] = manager.ResultWrapper()
   loop = asyncio.get_running_loop()
   res.set(AudioMetadata(
