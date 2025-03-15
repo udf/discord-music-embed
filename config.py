@@ -9,7 +9,8 @@ SERVE_FILES = os.environ.get('SERVE_FILES', '0') == '1'
 # size of process pool used for reading file metadata
 METADATA_WORKERS = int(os.environ.get('METADATA_WORKERS', 4))
 
-# host to use when generating absolute urls to files
+# host to use when generating absolute urls to files, if set to an empty string
+# the X-Forwarded-Host header or Host header is used
 HTTP_HOST = os.environ.get('HTTP_HOST', f'localhost:{PORT}')
 
 # used in templates
