@@ -94,9 +94,10 @@ async def uuid_middleware(request: web.Request, handler):
 
 def scan_music_dir():
   global music_files
-  _music_files = set()
+  _music_files = set() if music_files else music_files
   logger.info('walker: getting list of music files...')
   for root, dirs, files in MUSIC_DIR.walk():
+    dirs.sort()
     relative_root = root.relative_to(MUSIC_DIR)
     for file in files:
       path = relative_root / file
@@ -122,16 +123,15 @@ async def main():
     host='localhost',
     port=PORT
   )
-
-  await asyncio.to_thread(scan_music_dir)
   logger.info('starting web server...')
   await site.start()
+
   while True:
-    await asyncio.sleep(3600)
     try:
       await asyncio.to_thread(scan_music_dir)
     except:
       logger.exception('Error scanning music directory')
+    await asyncio.sleep(3600)
 
 
 if __name__ == '__main__':
