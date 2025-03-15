@@ -9,7 +9,6 @@ from yarl import URL
 
 from config import (
   PORT, HTTP_HOST, SERVE_FILES,
-  SITE_NAME, THEME_COLOR,
   MUSIC_DIR, HTTP_ROOT,
   COVER_DIR, COVER_HTTP_ROOT,
 )
@@ -20,7 +19,9 @@ from templates import AudioAsVideo
 
 ACCEPTED_FILE_EXTS = {'.flac', '.mp3'}
 
-process_pool = concurrent.futures.ProcessPoolExecutor(max_workers=8)
+# set of relative file paths that are valid for processing
+# TODO: rescan on SIGUSR1
+music_files: set[str] = set()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('main')
@@ -50,7 +51,7 @@ async def api_get_root(req: web.Request):
   if SERVE_FILES and (res := serve_file(req, local_path)) is not None:
     return res
 
-  if not local_path.is_file() or local_path.suffix.lower() not in ACCEPTED_FILE_EXTS:
+  if str(rel_path) not in music_files:
     return web.Response(
       body=f'400: Path is not a valid file [%UUID%]',
       status=400
@@ -91,17 +92,52 @@ async def uuid_middleware(request: web.Request, handler):
   return resp
 
 
+def scan_music_dir():
+  global music_files
+  _music_files = set()
+  logger.info('walker: getting list of music files...')
+  for root, dirs, files in MUSIC_DIR.walk():
+    relative_root = root.relative_to(MUSIC_DIR)
+    for file in files:
+      path = relative_root / file
+      if path.suffix.lower() not in ACCEPTED_FILE_EXTS:
+        continue
+      _music_files.add(str(path))
+  logger.info(f'walker: found {len(_music_files)} files')
+  music_files = _music_files
+
+
+async def main():
+  app = web.Application(middlewares=[uuid_middleware])
+  app.add_routes(routes)
+
+  runner = web.AppRunner(
+    app,
+    access_log_format='%a %t (%Tfs) [%{X-UUID}o] "%r" %s %b "%{Referer}i" "%{User-Agent}i"',
+    handle_signals=True
+  )
+  await runner.setup()
+  site = web.TCPSite(
+    runner,
+    host='localhost',
+    port=PORT
+  )
+
+  await asyncio.to_thread(scan_music_dir)
+  logger.info('starting web server...')
+  await site.start()
+  while True:
+    await asyncio.sleep(3600)
+    try:
+      await asyncio.to_thread(scan_music_dir)
+    except:
+      logger.exception('Error scanning music directory')
+
+
 if __name__ == '__main__':
   metadata_service.init()
 
   # cache node id
   uuid.getnode()
 
-  app = web.Application(middlewares=[uuid_middleware])
-  app.add_routes(routes)
-
-  web.run_app(
-    app,
-    port=PORT,
-    access_log_format='%a %t (%Tfs) [%{X-UUID}o] "%r" %s %b "%{Referer}i" "%{User-Agent}i"'
-  )
+  asyncio.run(main())
