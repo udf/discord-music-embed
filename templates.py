@@ -39,9 +39,9 @@ class AudioAsVideo(AudioMetadata):
   <audio controls src="{self.content_url}"></audio>
   <br/>
   <span>
-    <a href="{self.content_url}" download>Link</a>
+    <a href="{self.content_url}">Link</a>
     <span>|</span>
-    <a href="{self.content_url}">Download</a>
+    <a href="{self.content_url}" download>Download</a>
   </span>
 </body>
 </html>
