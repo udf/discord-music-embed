@@ -78,7 +78,7 @@ async def api_get_root(req: web.Request):
   return web.Response(
     body=template.get_html(),
     content_type='text/html',
-    headers={'Cache-Control': 'max-age=600'} if metadata.is_complete else None
+    headers={'Cache-Control': 'public' if metadata.is_complete else 'max-age=5' }
   )
 
 
