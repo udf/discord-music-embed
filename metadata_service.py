@@ -170,8 +170,8 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
   local_path = Path(MUSIC_DIR) / rel_path
   stat = local_path.stat()
 
-  cache_mtime = cache['mtime'] if cache else 0
-  cache_is_valid = cache and cache_mtime > stat.st_mtime and metadata.is_complete
+  cache_mtime = cache['mtime'] if cache and metadata.is_complete else 0
+  cache_is_valid = cache and cache_mtime > stat.st_mtime
 
   # read and resize cover (only read tags is cache is outdated)
   cover_art_im, cover_art_path = get_cover_art_image(local_path, read_tags=not cache_is_valid)
