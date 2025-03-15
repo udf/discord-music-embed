@@ -115,7 +115,7 @@ async def main():
 
   runner = web.AppRunner(
     app,
-    access_log_format='%a %t (%Tfs) [%{X-UUID}o] "%r" %s %b "%{Referer}i" "%{User-Agent}i"',
+    access_log_format='%a(%{X-Forwarded-For}i) %t (%Tfs) [%{X-UUID}o] "%r" %s %b "%{Referer}i" "%{User-Agent}i"',
     handle_signals=True
   )
   await runner.setup()
