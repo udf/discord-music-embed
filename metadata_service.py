@@ -15,7 +15,7 @@ import mutagen
 from PIL import Image
 
 import db
-from config import COVER_DIR, DEFAULT_COVER_PATH, MUSIC_DIR
+from config import COVER_DIR, DEFAULT_COVER_PATH, MUSIC_DIR, METADATA_WORKERS
 
 
 def _mp_init():
@@ -223,7 +223,7 @@ def init():
   COVER_DIR.mkdir(exist_ok=True, parents=True)
   DEFAULT_COVER = resize_and_store_image(Image.open(DEFAULT_COVER_PATH))
 
-  process_pool = concurrent.futures.ProcessPoolExecutor(max_workers=8, initializer=_mp_init, initargs=())
+  process_pool = concurrent.futures.ProcessPoolExecutor(max_workers=METADATA_WORKERS, initializer=_mp_init, initargs=())
 
   MpManager.register('ResultWrapper', ResultWrapper)
   MpManager.register('set', set)
