@@ -8,7 +8,7 @@ class AudioAsVideo(AudioMetadata):
   content_url: str
   cover_url: str
 
-  def get_html(self):
+  def get_html(self, gmt_now):
     song_info = f'{self.artist} - {self.title}' if self.artist else self.title
     return f'''
 <!DOCTYPE html>
@@ -43,6 +43,8 @@ class AudioAsVideo(AudioMetadata):
     <span>|</span>
     <a href="{self.content_url}" download>Download</a>
   </span>
+  <hr/>
+  <p>Generated at: {gmt_now}</p>
 </body>
 </html>
     '''

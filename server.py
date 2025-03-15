@@ -1,18 +1,16 @@
 import asyncio
-import concurrent.futures
+import datetime
 import logging
-from pathlib import PurePosixPath
 import uuid
+from pathlib import PurePosixPath
 
 from aiohttp import web
 from yarl import URL
 
-from config import (
-  PORT, HTTP_HOST, SERVE_FILES,
-  MUSIC_DIR, HTTP_ROOT,
-  COVER_DIR, COVER_HTTP_ROOT,
-)
 import metadata_service
+from config import (
+  COVER_DIR, COVER_HTTP_ROOT, HTTP_HOST, HTTP_ROOT, MUSIC_DIR, PORT, SERVE_FILES,
+)
 from metadata_service import get_audio_metadata
 from templates import AudioAsVideo
 
@@ -75,10 +73,14 @@ async def api_get_root(req: web.Request):
     ))
   )
 
+  gmt_now = datetime.datetime.now(datetime.timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
   return web.Response(
-    body=template.get_html(),
+    body=template.get_html(gmt_now),
     content_type='text/html',
-    headers={'Cache-Control': 'public' if metadata.is_complete else 'max-age=5' }
+    headers={
+      'Cache-Control': 'public' if metadata.is_complete else 'max-age=5',
+      'Last-Modified': gmt_now
+    }
   )
 
 
