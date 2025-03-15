@@ -65,8 +65,6 @@ async def api_get_root(req: web.Request):
 
   template = AudioAsVideo(
     **metadata.as_dict(),
-    site_name=SITE_NAME,
-    theme_color=THEME_COLOR,
     content_url=str(URL.build(scheme=req.scheme, authority=host, path=req.path)),
     cover_url=str(URL.build(
       scheme=req.scheme,

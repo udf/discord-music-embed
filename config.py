@@ -11,6 +11,7 @@ HTTP_HOST = os.environ.get('HTTP_HOST', f'localhost:{PORT}')
 
 # used in templates
 SITE_NAME = os.environ.get('SITE_NAME', 'Gaia')
+PAGE_TITLE = os.environ.get('PAGE_TITLE', SITE_NAME)
 THEME_COLOR = os.environ.get('THEME_COLOR', '#F5A9B8')
 
 # local path of the music directory
