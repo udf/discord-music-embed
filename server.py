@@ -43,8 +43,6 @@ def serve_file(req: web.Request, local_path):
 
 @routes.get('/{path:.*}')
 async def api_get_root(req: web.Request):
-  host = req.headers.get('X-FORWARDED-FOR', HTTP_HOST)
-
   rel_path = PurePosixPath(req.path).relative_to(HTTP_ROOT)
   local_path = MUSIC_DIR / rel_path
 
@@ -66,10 +64,10 @@ async def api_get_root(req: web.Request):
 
   template = AudioAsVideo(
     **metadata.as_dict(),
-    content_url=str(URL.build(scheme=req.scheme, authority=host, path=req.path)),
+    content_url=str(URL.build(scheme=req.scheme, authority=HTTP_HOST, path=req.path)),
     cover_url=str(URL.build(
       scheme=req.scheme,
-      authority=host,
+      authority=HTTP_HOST,
       path=str(COVER_HTTP_ROOT / PurePosixPath(metadata.cover_filename))
     ))
   )
