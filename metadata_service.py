@@ -181,6 +181,8 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
     logger.info(f'[{uuid}] updating cover art from {cover_art_path or '<tags>'}')
     cover = resize_and_store_image(cover_art_im)
     metadata.cover_filename = cover.filename
+    metadata.cover_width = cover.width
+    metadata.cover_height = cover.height
     res.set(metadata)
     store_audio_file_metadata(metadata)
 
