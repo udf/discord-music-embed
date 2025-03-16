@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path, PurePosixPath
 
 from aiohttp import web
+from aiohttp.typedefs import Handler
 from yarl import URL
 
 import file_indexer
@@ -45,7 +46,8 @@ async def api_get_root(req: web.Request):
   if SERVE_FILES and (res := serve_file(req, local_path)) is not None:
     return res
 
-  if str(rel_path) not in music_files:
+  if not file_indexer.path_is_valid(rel_path):
+    asyncio.create_task(file_indexer.rescan_if_index_is_outdated(local_path))
     return web.Response(
       body=f'400: Path is not a valid file [%UUID%]',
       status=400
@@ -53,10 +55,12 @@ async def api_get_root(req: web.Request):
 
   try:
     metadata = await get_audio_metadata(rel_path, uuid=req.get('UUID', '-'), timeout=2)
-  except RuntimeError as e:
-    return web.Response(body=str(e), status=500)
+  except FileNotFoundError:
+    logger.exception(f'Error parsing request {req.get('UUID', '-')}')
+    return web.Response(body='404: Path was not found, check logs [%UUID%]', status=404)
   except:
-    raise
+    logger.exception(f'Error parsing request {req.get('UUID', '-')}')
+    return web.Response(body='500: Unexpected error occured, check logs [%UUID%]', status=500)
 
   template = AudioAsVideo(
     **metadata.as_dict(),
@@ -80,10 +84,10 @@ async def api_get_root(req: web.Request):
 
 
 @web.middleware
-async def uuid_middleware(request: web.Request, handler):
+async def uuid_middleware(request: web.Request, handler: Handler):
   req_uuid = str(uuid.uuid4())
   request['UUID'] = req_uuid
-  resp: web.Response = await handler(request)
+  resp = await handler(request)
   resp.headers['X-UUID'] = req_uuid
   if isinstance(resp, web.Response):
     resp.text = (resp.text or '').replace('%UUID%', req_uuid)
@@ -107,7 +111,7 @@ async def main():
   )
   logger.info('starting web server...')
   await site.start()
-  if not await asyncio.to_thread(file_indexer.scan_music_dir):
+  if not await file_indexer.scan_music_dir():
     logger.error('Scanning music directory failed, exiting')
     exit(1)
 
