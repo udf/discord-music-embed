@@ -2,11 +2,12 @@ import asyncio
 import datetime
 import logging
 import uuid
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 from aiohttp import web
 from yarl import URL
 
+import file_indexer
 import metadata_service
 from config import (
   COVER_DIR, COVER_HTTP_ROOT, HTTP_HOST, HTTP_ROOT, MUSIC_DIR, PORT, SERVE_FILES,
@@ -15,19 +16,13 @@ from metadata_service import get_audio_metadata
 from templates import AudioAsVideo
 
 
-ACCEPTED_FILE_EXTS = {'.flac', '.mp3'}
-
-# set of relative file paths that are valid for processing
-# TODO: rescan on SIGUSR1
-music_files: set[str] = set()
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('main')
 
 routes = web.RouteTableDef()
 
 
-def serve_file(req: web.Request, local_path):
+def serve_file(req: web.Request, local_path: Path):
   if req.query_string:
     return
   if local_path.is_file():
@@ -95,22 +90,6 @@ async def uuid_middleware(request: web.Request, handler):
   return resp
 
 
-def scan_music_dir():
-  global music_files
-  _music_files = set() if music_files else music_files
-  logger.info('walker: getting list of music files...')
-  for root, dirs, files in MUSIC_DIR.walk():
-    dirs.sort()
-    relative_root = root.relative_to(MUSIC_DIR)
-    for file in files:
-      path = relative_root / file
-      if path.suffix.lower() not in ACCEPTED_FILE_EXTS:
-        continue
-      _music_files.add(str(path))
-  logger.info(f'walker: found {len(_music_files)} files')
-  music_files = _music_files
-
-
 async def main():
   app = web.Application(middlewares=[uuid_middleware])
   app.add_routes(routes)
@@ -128,12 +107,11 @@ async def main():
   )
   logger.info('starting web server...')
   await site.start()
+  if not await asyncio.to_thread(file_indexer.scan_music_dir):
+    logger.error('Scanning music directory failed, exiting')
+    exit(1)
 
   while True:
-    try:
-      await asyncio.to_thread(scan_music_dir)
-    except:
-      logger.exception('Error scanning music directory')
     await asyncio.sleep(3600)
 
 

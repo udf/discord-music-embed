@@ -18,6 +18,12 @@ import db
 from config import COVER_DIR, DEFAULT_COVER_PATH, MUSIC_DIR, METADATA_WORKERS
 
 
+ACCEPTED_FILE_EXTS = {'.flac', '.mp3'}
+COVER_SIZE = 512
+
+logger = logging.getLogger('meta:main')
+
+
 def _mp_init():
   global logger
   current_proc = multiprocessing.current_process()
@@ -234,10 +240,7 @@ def init():
   busy_files = manager.set()
 
 
-logger = logging.getLogger('meta:main')
-
 DEFAULT_COVER: Cover = Cover(filename='', width=0, height=0)
-COVER_SIZE = 512
 
 process_pool = None
 manager: MpManager = None
