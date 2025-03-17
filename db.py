@@ -4,6 +4,8 @@ import sqlite3
 import logging
 from dataclasses import dataclass
 
+from metadata_tags import Tags
+
 
 logger = logging.getLogger('db')
 db = sqlite3.connect('cache.db')
@@ -14,9 +16,8 @@ db.row_factory = sqlite3.Row
 class CachedAudioMetadata:
   path: str
   mtime: int | None = None
-  cover_filename: str
-  artist: str
-  title: str
+  cover_filename: str = ''
+  tags: Tags
 
 
 def get_audio_metadata_by_path(relative_path: PurePosixPath):
@@ -36,8 +37,10 @@ def get_audio_metadata_by_path(relative_path: PurePosixPath):
     path=row['path'],
     mtime=row['mtime'],
     cover_filename=row['cover_filename'],
-    artist=row['artist'],
-    title=row['title'],
+    tags=Tags(
+      artist=row['artist'],
+      title=row['title'],
+    )
   )
 
 
@@ -53,8 +56,8 @@ def store_audio_metadata(meta: CachedAudioMetadata):
       {
         'path': meta.path,
         'cover_filename': meta.cover_filename,
-        'artist': meta.artist,
-        'title': meta.title
+        'artist': meta.tags.artist,
+        'title': meta.tags.title
       }
     )
 

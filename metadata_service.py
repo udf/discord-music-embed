@@ -1,7 +1,6 @@
 import logging
 import asyncio
 import concurrent.futures
-import dataclasses
 import hashlib
 import multiprocessing
 from dataclasses import dataclass
@@ -9,7 +8,7 @@ from functools import partial
 from io import BytesIO
 from multiprocessing.managers import BaseManager
 from pathlib import Path, PurePosixPath
-from typing import Any
+from copy import deepcopy
 
 import mutagen
 from PIL import Image
@@ -17,6 +16,7 @@ from PIL import Image
 import db
 from db import CachedAudioMetadata
 from config import COVER_DIR, DEFAULT_COVER_PATH, MUSIC_DIR, METADATA_WORKERS
+from metadata_tags import Tags, read_audio_tags
 
 
 ACCEPTED_FILE_EXTS = {'.flac', '.mp3'}
@@ -59,21 +59,15 @@ class AudioMetadata(CachedAudioMetadata):
   cover_height: int = 0
   is_complete: bool = False
 
-
-def read_audio_metadata(f):
-  concat = lambda l: ', '.join(l)
-  m = mutagen.File(f)
-
-  artist = ''
-  title = ''
-  if isinstance(m, mutagen.flac.FLAC):
-    artist = concat(m.tags.get('ARTIST', []))
-    title = concat(m.tags.get('TITLE', []))
-  elif isinstance(m, mutagen.mp3.MP3):
-    artist = concat(m.tags.get('TPE1', []))
-    title = concat(m.tags.get('TIT2', []))
-
-  return artist or '', title or f.stem
+  @classmethod
+  def create_placeholder(cls, path: PurePosixPath):
+    return cls(
+      path=str(path),
+      cover_filename=DEFAULT_COVER.filename,
+      cover_width=DEFAULT_COVER.width,
+      cover_height=DEFAULT_COVER.height,
+      tags=Tags(title=path.stem)
+    )
 
 
 def get_embedded_art(f):
@@ -134,12 +128,9 @@ def resize_and_store_image(im: Image.Image) -> Cover:
 
 
 def store_audio_file_metadata(metadata: AudioMetadata):
-  db.store_audio_metadata(CachedAudioMetadata(
-    path=metadata.path,
-    cover_filename=metadata.cover_filename if metadata.cover_filename != DEFAULT_COVER.filename else '',
-    artist=metadata.artist,
-    title=metadata.title
-  ))
+  metadata = deepcopy(metadata)
+  metadata.cover_filename = metadata.cover_filename if metadata.cover_filename != DEFAULT_COVER.filename else ''
+  db.store_audio_metadata(metadata)
 
 
 def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPath, uuid: str):
@@ -150,8 +141,7 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
   if cache:
     logger.info(f'[{uuid}] loading metadata from cache')
     # load from cache, even if it is potentialy outdated
-    metadata.artist = cache.artist
-    metadata.title = cache.title
+    metadata.tags = cache.tags
     res.set(metadata)
 
     if cache.cover_filename:
@@ -192,9 +182,7 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
 
   # read metadata
   logger.info(f'[{uuid}] fetching file metadata')
-  artist, title = read_audio_metadata(local_path)
-  metadata.artist = artist
-  metadata.title = title
+  metadata.tags = read_audio_tags(local_path)
   metadata.is_complete = True
   res.set(metadata)
 
@@ -204,14 +192,7 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
 async def get_audio_metadata(rel_path: PurePosixPath, uuid: str, timeout: float) -> AudioMetadata:
   res: ResultWrapper[AudioMetadata] = manager.ResultWrapper()
   loop = asyncio.get_running_loop()
-  res.set(AudioMetadata(
-    path=str(rel_path),
-    cover_filename=DEFAULT_COVER.filename,
-    cover_width=DEFAULT_COVER.width,
-    cover_height=DEFAULT_COVER.height,
-    artist='',
-    title=rel_path.stem
-  ))
+  res.set(AudioMetadata.create_placeholder(rel_path))
   try:
     fn = partial(_get_audio_metadata, res=res, rel_path=rel_path, uuid=uuid)
     await asyncio.wait_for(loop.run_in_executor(process_pool, fn), timeout=timeout)

@@ -7,8 +7,9 @@ def get_html(
   cover_url: str,
   gmt_now: str
 ):
-    song_info = f'{meta.artist} - {meta.title}' if meta.artist else meta.title
-    return f'''
+  tags = meta.tags
+  song_info = f'{tags.artist} - {tags.title}' if tags.artist else tags.title
+  return f'''
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,7 +18,7 @@ def get_html(
 
   <meta property="og:site_name" content="{SITE_NAME}">
   <meta property="og:title" content="{song_info}">
-  <meta property="og:description" content="{meta.artist}">
+  <meta property="og:description" content="{song_info}">
   <meta property="og:image" content="{cover_url}">
   <meta name="theme-color" content="{THEME_COLOR}" />
   <meta property="og:type" content="video.other">
