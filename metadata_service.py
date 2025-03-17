@@ -15,6 +15,7 @@ import mutagen
 from PIL import Image
 
 import db
+from db import CachedAudioMetadata
 from config import COVER_DIR, DEFAULT_COVER_PATH, MUSIC_DIR, METADATA_WORKERS
 
 
@@ -53,17 +54,10 @@ class Cover:
 
 
 @dataclass(kw_only=True)
-class AudioMetadata:
-  path: str
-  cover_filename: str
-  cover_width: int
-  cover_height: int
-  artist: str
-  title: str
+class AudioMetadata(CachedAudioMetadata):
+  cover_width: int = 0
+  cover_height: int = 0
   is_complete: bool = False
-
-  def as_dict(self):
-    return dataclasses.asdict(self)
 
 
 def read_audio_metadata(f):
@@ -140,30 +134,30 @@ def resize_and_store_image(im: Image.Image) -> Cover:
 
 
 def store_audio_file_metadata(metadata: AudioMetadata):
-  db.set_audio_file_cache(
+  db.store_audio_metadata(CachedAudioMetadata(
     path=metadata.path,
     cover_filename=metadata.cover_filename if metadata.cover_filename != DEFAULT_COVER.filename else '',
     artist=metadata.artist,
     title=metadata.title
-  )
+  ))
 
 
 def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPath, uuid: str):
   metadata = res.get()
   assert metadata is not None
   metadata.path = str(rel_path)
-  cache: dict[str, Any] = db.get_audio_file_by_path(rel_path)
+  cache = db.get_audio_metadata_by_path(rel_path)
   if cache:
     logger.info(f'[{uuid}] loading metadata from cache')
     # load from cache, even if it is potentialy outdated
-    metadata.artist = cache['artist']
-    metadata.title = cache['title']
+    metadata.artist = cache.artist
+    metadata.title = cache.title
     res.set(metadata)
 
-    if cache['cover_filename']:
+    if cache.cover_filename:
       try:
-        width, height = read_image_size(COVER_DIR / cache['cover_filename'])
-        metadata.cover_filename = cache['cover_filename']
+        width, height = read_image_size(COVER_DIR / cache.cover_filename)
+        metadata.cover_filename = cache.cover_filename
         metadata.cover_width = width
         metadata.cover_height = height
         metadata.is_complete = True
@@ -176,7 +170,7 @@ def _get_audio_metadata(res: ResultWrapper[AudioMetadata], rel_path: PurePosixPa
   local_path = Path(MUSIC_DIR) / rel_path
   stat = local_path.stat()
 
-  cache_mtime = cache['mtime'] if cache and metadata.is_complete else 0
+  cache_mtime = (cache.mtime or 0) if cache and metadata.is_complete else 0
   cache_is_valid = cache and cache_mtime > stat.st_mtime
 
   # read and resize cover (only read tags is cache is outdated)
