@@ -12,16 +12,13 @@ def read_audio_tags(f: Path):
   concat = lambda l: ', '.join(l)
   m = mutagen.File(f)
 
-  artist = ''
-  title = ''
+  tags: Tags = Tags()
   if isinstance(m, mutagen.flac.FLAC):
-    artist = concat(m.tags.get('ARTIST', []))
-    title = concat(m.tags.get('TITLE', []))
+    tags.artist = concat(m.tags.get('ARTIST', []))
+    tags.title = concat(m.tags.get('TITLE', []))
   elif isinstance(m, mutagen.mp3.MP3):
-    artist = concat(m.tags.get('TPE1', []))
-    title = concat(m.tags.get('TIT2', []))
+    tags.artist = concat(m.tags.get('TPE1', []))
+    tags.title = concat(m.tags.get('TIT2', []))
 
-  return Tags(
-    artist=artist or '',
-    title=title or f.stem
-  )
+  tags.title = tags.title or f.stem
+  return tags
