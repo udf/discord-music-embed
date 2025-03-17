@@ -27,7 +27,7 @@ def get_audio_metadata_by_path(relative_path: PurePosixPath):
     row: sqlite3.Row = cur.execute(
       '''
         SELECT
-          path, mtime, cover_filename, artist, title
+          path, mtime, cover_filename, artist, title, album, date
         FROM audio_files
         WHERE path = ?
       ''',
@@ -42,6 +42,8 @@ def get_audio_metadata_by_path(relative_path: PurePosixPath):
     tags=Tags(
       artist=row['artist'],
       title=row['title'],
+      album=row['album'],
+      date=row['date'],
     )
   )
 
@@ -51,15 +53,17 @@ def store_audio_metadata(meta: CachedAudioMetadata):
     _ = cur.execute(
       (
         'INSERT OR REPLACE INTO audio_files'
-        '(path, cover_filename, artist, title)'
+        '(path, cover_filename, artist, title, album, date)'
         'VALUES'
-        '(:path, :cover_filename, :artist, :title)'
+        '(:path, :cover_filename, :artist, :title, :album, :date)'
       ),
       {
         'path': meta.path,
         'cover_filename': meta.cover_filename,
         'artist': meta.tags.artist,
-        'title': meta.tags.title
+        'title': meta.tags.title,
+        'album': meta.tags.album,
+        'date': meta.tags.date,
       }
     )
 
@@ -79,6 +83,8 @@ if multiprocessing.parent_process() is None:
         mtime INTEGER DEFAULT (unixepoch()) NOT NULL,
         cover_filename TEXT NOT NULL,
         artist TEXT NOT NULL,
-        title TEXT NOT NULL
+        title TEXT NOT NULL,
+        album TEXT NOT NULL,
+        date TEXT NOT NULL
       )
     ''')

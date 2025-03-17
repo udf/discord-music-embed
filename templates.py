@@ -1,5 +1,15 @@
 from config import PAGE_TITLE, SITE_NAME, THEME_COLOR
 from metadata_service import AudioMetadata
+from metadata_tags import Tags
+
+
+def get_album_info(tags: Tags):
+  match (tags.album, tags.date):
+    case album, '':
+      return f'{album}'
+    case album, date:
+      return f'{album or 'Unknown Album'} ({date})'
+
 
 def get_html(
   meta: AudioMetadata,
@@ -9,6 +19,9 @@ def get_html(
 ):
   tags = meta.tags
   song_info = f'{tags.artist} - {tags.title}' if tags.artist else tags.title
+  album_info = get_album_info(tags)
+  get_page_title = lambda s: f'{album_info} | {s}' if album_info else s
+
   return f'''
 <!DOCTYPE html>
 <html lang="en">
@@ -16,7 +29,7 @@ def get_html(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta property="og:site_name" content="{SITE_NAME}">
+  <meta property="og:site_name" content="{get_page_title(SITE_NAME)}">
   <meta property="og:title" content="{song_info}">
   <meta property="og:description" content="{song_info}">
   <meta property="og:image" content="{cover_url}">
@@ -28,11 +41,12 @@ def get_html(
   <meta property="og:video:type" content="video/mp4">
   <meta property="og:video:width" content="{meta.cover_width}">
   <meta property="og:video:height" content="{meta.cover_height}">
-  <title>{song_info} | {PAGE_TITLE}</title>
+  <title>{get_page_title(PAGE_TITLE)}</title>
 </head>
 <body>
   <h1>{PAGE_TITLE}</h1>
   <h2>{song_info}</h2>
+  <h3>{album_info}</h3>
   <img src="{cover_url}" width="300" height="300" style="object-fit: contain;" />
   <br/>
   <audio controls src="{content_url}"></audio>
