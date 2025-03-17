@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+logging.basicConfig(level=logging.INFO)
 import uuid
 from pathlib import Path, PurePosixPath
 
@@ -10,14 +11,13 @@ from yarl import URL
 
 import file_indexer
 import metadata_service
+import templates
 from config import (
   COVER_DIR, COVER_HTTP_ROOT, HTTP_HOST, HTTP_ROOT, MUSIC_DIR, PORT, SERVE_FILES,
 )
 from metadata_service import get_audio_metadata
-import templates
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('main')
 
 routes = web.RouteTableDef()
