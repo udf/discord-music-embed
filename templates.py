@@ -20,7 +20,7 @@ def get_html(
   tags = meta.tags
   song_info = f'{tags.artist} - {tags.title}' if tags.artist else tags.title
   album_info = get_album_info(tags)
-  site_name = f'{album_info} | {SITE_NAME}' if album_info else SITE_NAME
+  site_name = f'{SITE_NAME} | {album_info}' if album_info else SITE_NAME
 
   return f'''
 <!DOCTYPE html>
