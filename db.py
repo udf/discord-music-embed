@@ -1,3 +1,4 @@
+from argparse import _VersionAction
 import multiprocessing
 from pathlib import PurePosixPath
 import sqlite3
@@ -8,6 +9,7 @@ from metadata_tags import Tags
 
 
 logger = logging.getLogger('db')
+DB_VERSION = 1
 db = sqlite3.connect('cache.db')
 db.row_factory = sqlite3.Row
 
@@ -22,7 +24,7 @@ class CachedAudioMetadata:
 
 def get_audio_metadata_by_path(relative_path: PurePosixPath):
   with db as cur:
-    row = cur.execute(
+    row: sqlite3.Row = cur.execute(
       '''
         SELECT
           path, mtime, cover_filename, artist, title
@@ -65,6 +67,12 @@ def store_audio_metadata(meta: CachedAudioMetadata):
 if multiprocessing.parent_process() is None:
   logger.info(f'Initialising db...')
   with db as cur:
+    row: sqlite3.Row = cur.execute('PRAGMA user_version').fetchone()
+    version: int = row['user_version']
+    if version < DB_VERSION:
+      logger.info('old database detected, recreating...')
+      _ = cur.execute('DROP TABLE IF EXISTS audio_files')
+      _ = cur.execute(f'PRAGMA user_version = {DB_VERSION}')
     _ = cur.execute('''
       CREATE TABLE IF NOT EXISTS audio_files (
         path TEXT PRIMARY KEY NOT NULL,
