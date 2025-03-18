@@ -47,6 +47,7 @@ def _rescan_if_index_is_outdated(local_path: Path):
   is_file = local_path.is_file()
   if (is_indexed and is_file) or (not is_indexed and not is_file):
     return
+  discovered_files.add(str(relative_path))
   if scan_lock.locked():
     logger.info('need to rescan but a scan is already in progress, skipping')
     return
