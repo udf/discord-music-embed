@@ -60,6 +60,19 @@ def get_html(
   <meta property="og:video:width" content="{cover_width:attr}">
   <meta property="og:video:height" content="{cover_height:attr}">
   <title>{song_info} | {PAGE_TITLE}</title>
+
+  <style>
+    body {{ background-color: #181a1b; color: hsl(36, 10%, 95%); }}
+    a {{ color: hsl(210, 100%, 60%); }}
+    a:visited {{ color: hsl(260, 100%, 60%); }}
+    a:hover {{ color: hsl(210, 100%, 80%); }}
+    a:visited:hover {{ color: hsl(260, 100%, 80%); }}
+    h2 {{ margin-bottom: 0.2em; }}
+    h3 {{ color: hsl(36, 10%, 75%); margin-top: 0.2em; }}
+    @-moz-document url-prefix() {{
+      audio {{ background-color: #606060; }}
+    }}
+  </style>
 </head>
 <body>
   <h1>{PAGE_TITLE}</h1>
@@ -72,7 +85,7 @@ def get_html(
   <span>
     <a href="{content_url:attr}">Link</a>
     <span>|</span>
-    <a href="{content_url:attr}" download>Download</a>
+    <a href="{content_url:attr}#download" download>Download</a>
   </span>
   <hr/>
   <p>Generated at: {gmt_now}</p>
