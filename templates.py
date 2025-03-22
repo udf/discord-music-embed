@@ -27,6 +27,29 @@ def get_album_info(tags: Tags):
       return f'{album or 'Unknown Album'} ({date})'
 
 
+def trim_str(s: str, max_len: int) -> str:
+  if len(s) > max_len:
+    return s[:max_len - 1] + '…'
+  return s
+
+
+def multi_line_trim(lines: list[str], max_chars: int, line_sep_len=1) -> list[str]:
+  safe_line_length = (max_chars - line_sep_len * (len(lines) - 1)) // len(lines)
+  extra_chars = 0
+  trimmable_lines = 0
+  for line in lines:
+    if (n := safe_line_length - len(line)) >= 0:
+      extra_chars += n
+    else:
+      trimmable_lines += 1
+
+  if trimmable_lines:
+    safe_line_length += extra_chars // trimmable_lines
+    return [trim_str(line, safe_line_length) for line in lines]
+
+  return lines
+
+
 def get_html(
   meta: AudioMetadata,
   content_url: str,
@@ -34,11 +57,17 @@ def get_html(
   gmt_now: str
 ):
   tags = meta.tags
-  song_info = f'{tags.artist} - {tags.title}' if tags.artist else tags.title
+  song_info = f'{tags.title} by {tags.artist}' if tags.artist else tags.title
   album_info = get_album_info(tags)
-  site_name = f'{SITE_NAME} | {album_info}' if album_info else SITE_NAME
+  site_name_lines = [SITE_NAME]
   cover_width = meta.cover_width
   cover_height = meta.cover_height
+
+  if album_info:
+    site_name_lines.append(album_info)
+  if tags.artist:
+    site_name_lines.append(tags.artist)
+  site_name = '\n\n'.join(multi_line_trim(site_name_lines, 256, 2))
 
   return FORMATTER.format('''
 <!DOCTYPE html>
@@ -48,7 +77,7 @@ def get_html(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta property="og:site_name" content="{site_name:attr}">
-  <meta property="og:title" content="{song_info:attr}">
+  <meta property="og:title" content="{title:attr}">
   <meta property="og:description" content="{song_info:attr}">
   <meta property="og:image" content="{cover_url:attr}">
   <meta name="theme-color" content="{THEME_COLOR:attr}" />
@@ -68,7 +97,7 @@ def get_html(
     a:hover {{ color: hsl(210, 100%, 80%); }}
     a:visited:hover {{ color: hsl(260, 100%, 80%); }}
     h2 {{ margin-bottom: 0.2em; }}
-    h3 {{ color: hsl(36, 10%, 75%); margin-top: 0.2em; }}
+    h3 {{ color: hsl(36, 10%, 75%); margin-top: 0.2em; margin-bottom: 0.5em; }}
     @-moz-document url-prefix() {{
       audio {{ background-color: #606060; }}
     }}
@@ -76,7 +105,8 @@ def get_html(
 </head>
 <body>
   <h1>{PAGE_TITLE}</h1>
-  <h2>{song_info}</h2>
+  <h2>{title}</h2>
+  <h3>{artist}</h3>
   <h3>{album_info}</h3>
   <img src="{cover_url:attr}" width="300" height="300" style="object-fit: contain;" />
   <br/>
@@ -100,6 +130,8 @@ def get_html(
   content_url=content_url,
   cover_width=cover_width,
   cover_height=cover_height,
+  title=tags.title,
+  artist=tags.artist,
   album_info=album_info,
   gmt_now=gmt_now,
 )
