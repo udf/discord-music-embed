@@ -37,15 +37,20 @@ def r_replace(s: str, old: str, new: str, count: int):
   return new.join(s.rsplit(old, count))
 
 
+def multi_line_trim(lines: list[str], max_chars: int, line_sep_len: int=1) -> list[str]:
+  total_line_sep_len = max(0, line_sep_len * (len(lines) - 1))
+  safe_line_length = (max_chars - total_line_sep_len) // len(lines)
+  used_chars = total_line_sep_len
   trimmable_lines = 0
   for line in lines:
-    if (n := safe_line_length - len(line)) >= 0:
-      extra_chars += n
+    line_len = len(line)
+    if line_len <= safe_line_length:
+      used_chars += line_len
     else:
       trimmable_lines += 1
 
   if trimmable_lines:
-    safe_line_length += extra_chars // trimmable_lines
+    safe_line_length = (max_chars - used_chars) // trimmable_lines
     return [trim_str(line, safe_line_length) for line in lines]
 
   return lines
