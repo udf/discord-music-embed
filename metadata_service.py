@@ -17,7 +17,6 @@ import db
 from db import CachedAudioMetadata
 from config import COVER_DIR, DEFAULT_COVER_PATH, MUSIC_DIR, METADATA_WORKERS
 from metadata_tags import Tags, read_audio_tags
-import file_indexer
 
 
 ACCEPTED_FILE_EXTS = {'.flac', '.mp3'}
@@ -30,6 +29,7 @@ def _mp_init():
   global logger
   current_proc = multiprocessing.current_process()
   logger = logging.getLogger(f'meta:{current_proc.name}')
+  import file_indexer
   file_indexer.discovered_files = set()
 
 
