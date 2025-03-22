@@ -19,7 +19,7 @@ PAGE_TITLE = os.environ.get('PAGE_TITLE', SITE_NAME)
 THEME_COLOR = os.environ.get('THEME_COLOR', '#F5A9B8')
 
 # local path of the music directory
-MUSIC_DIR = Path(os.environ['MUSIC_DIR']).resolve()
+MUSIC_DIR = Path(os.environ.get('MUSIC_DIR', '.')).resolve()
 # http path of the music directory
 HTTP_ROOT = PurePosixPath(os.environ.get('HTTP_ROOT', '/'))
 
