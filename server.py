@@ -40,7 +40,11 @@ async def api_get_root(req: web.Request):
   host = HTTP_HOST or req.headers.get('X-Forwarded-Host', '') or req.host
   scheme = req.headers.get('X-Forwarded-Proto', '') or req.scheme
 
-  rel_path = PurePosixPath(req.path).relative_to(HTTP_ROOT)
+  try:
+    rel_path = PurePosixPath(req.path).relative_to(HTTP_ROOT)
+  except ValueError:
+    return web.Response(body='400: Invalid path [%UUID%]', status=400)
+
   local_path = MUSIC_DIR / rel_path
 
   if SERVE_FILES and (res := serve_file(req, local_path)) is not None:
@@ -48,10 +52,7 @@ async def api_get_root(req: web.Request):
 
   if not file_indexer.path_is_valid(rel_path):
     asyncio.create_task(file_indexer.rescan_if_index_is_outdated(local_path))
-    return web.Response(
-      body=f'400: Path is not a valid file [%UUID%]',
-      status=400
-    )
+    return web.Response(body='400: Path is not a valid file [%UUID%]', status=400)
 
   try:
     metadata = await get_audio_metadata(rel_path, uuid=req.get('UUID', '-'), timeout=2)
