@@ -19,12 +19,12 @@ class HTMLFormatter(string.Formatter):
     )
 
 
-def get_album_info(tags: Tags):
+def get_album_info(tags: Tags) -> tuple[str, str]:
   match (tags.album, tags.date):
     case album, '':
-      return f'{album}'
+      return album, ''
     case album, date:
-      return f'{album or 'Unknown Album'} ({date})'
+      return album or 'Unknown Album', f'({date})'
 
 
 def trim_str(s: str, max_len: int) -> str:
@@ -33,9 +33,10 @@ def trim_str(s: str, max_len: int) -> str:
   return s
 
 
-def multi_line_trim(lines: list[str], max_chars: int, line_sep_len=1) -> list[str]:
-  safe_line_length = (max_chars - line_sep_len * (len(lines) - 1)) // len(lines)
-  extra_chars = 0
+def r_replace(s: str, old: str, new: str, count: int):
+  return new.join(s.rsplit(old, count))
+
+
   trimmable_lines = 0
   for line in lines:
     if (n := safe_line_length - len(line)) >= 0:
@@ -58,16 +59,21 @@ def get_html(
 ):
   tags = meta.tags
   song_info = f'{tags.title} by {tags.artist}' if tags.artist else tags.title
-  album_info = get_album_info(tags)
+  album, date = get_album_info(tags)
   site_name_lines = [SITE_NAME]
   cover_width = meta.cover_width
   cover_height = meta.cover_height
 
-  if album_info:
-    site_name_lines.append(album_info)
+  if album:
+    site_name_lines.extend(['', album, date])
   if tags.artist:
-    site_name_lines.append(tags.artist)
-  site_name = '\n\n'.join(multi_line_trim(site_name_lines, 256, 2))
+    site_name_lines.extend(['', tags.artist])
+  site_name = '\n'.join(
+    multi_line_trim(site_name_lines, 256)
+  )
+  # put date on same line as album, after trimming
+  if date:
+    site_name = r_replace(site_name, f'\n{date}', f' {date}', 1)
 
   return FORMATTER.format('''
 <!DOCTYPE html>
@@ -132,7 +138,7 @@ def get_html(
   cover_height=cover_height,
   title=tags.title,
   artist=tags.artist,
-  album_info=album_info,
+  album_info=f'{album} {date}' if album else '',
   gmt_now=gmt_now,
 )
 
