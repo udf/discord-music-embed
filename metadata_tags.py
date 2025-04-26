@@ -26,6 +26,7 @@ def read_audio_tags(f: Path):
     tags.title = concat(m.tags.get('TITLE', []))
     tags.date = concat(
       m.tags.get('originalyear')
+      or m.tags.get('year')
       or m.tags.get('originaldate')
       or m.tags.get('releasedate')
       or m.tags.get('date')
